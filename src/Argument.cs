@@ -13,6 +13,11 @@ struct Argument
 		Uses = [];
 	}
 
+	public override string ToString()
+	{
+		return Name;
+	}
+
 	private enum ReadingMode
 	{
 		Normal,
@@ -20,7 +25,7 @@ struct Argument
 		SingleQuota
 	}
 
-	private static Range ReadCommandlet(string source, int index)
+	private static SpanRange ReadCommandlet(string source, int index)
 	{
 		int start = -1;
 		ReadingMode mode = 0;
@@ -28,46 +33,97 @@ struct Argument
 		{
 			if (start > -1)
 			{
-				if (mode == ReadingMode.Normal && char.IsWhiteSpace(source[i]))
+				if (mode == ReadingMode.Normal)
 				{
-					return new(start, i);
+					if (char.IsWhiteSpace(source[i]))
+						return new(start, i);
+
+					if (source[i] == '"')
+					{
+						mode = ReadingMode.DoubleQuotes;
+					}
+					else if (source[i] == '\'')
+					{
+						mode = ReadingMode.SingleQuota;
+					}
+
+					continue;
 				}
 
-				if (mode == ReadingMode.DoubleQuotes && source[i] == '"')
+				if ((mode == ReadingMode.DoubleQuotes && source[i] == '"') | (mode == ReadingMode.SingleQuota && source[i] == '\''))
 				{
-					
+					mode = ReadingMode.Normal;
 				}
 
-
+				
 
 				continue;
 			}
 
 			if (!char.IsWhiteSpace(source[i]))
 			{
-				if (source[i] == '"' || source[i] == '\'')
+				start = i;
+
+				if (source[i] == '"')
 				{
-					reading = source[i];
+					mode = ReadingMode.DoubleQuotes;
+				}
+				else if (source[i] == '\'')
+				{
+					mode = ReadingMode.SingleQuota;
 				}
 				else
 				{
-					reading = 1;
+					mode = ReadingMode.Normal;
 				}
 			}
 		}
-		return range;
+
+		if (start < index)
+		{
+			return new(0, 0);
+		}
+
+		return new(start, source.Length);
 	}
 
-	private static Range[] SplitCommandlets()
+	private static SpanRange[] SplitCommandlets(string source)
 	{
-		return [];
+		List<SpanRange> ranges = new();
+		int index = 0;
+		while (index < source.Length)
+		{
+			SpanRange range = ReadCommandlet(source, index);
+			if (!range.Valid)
+			{
+				break;
+			}
+
+			ranges.Add(range);
+
+			index = range.End;
+		}
+		return ranges.ToArray();
 	}
 
 	public static Argument[] ParseArguments(string args)
 	{
+		SpanRange[] commandlets = SplitCommandlets(args);
+		Argument[] arguments = new Argument[commandlets.Length];
 
+		for (int i = 0; i < commandlets.Length; i++)
+		{
+			SpanRange range = commandlets[i];
+			// if the commandlet starts and ends with quotes, trim the quotes (e.g. `"hello there"` -> `hello there`)
+			if (args[range.Start] == args[range.End - 1] && (args[range.Start] == '"' || args[range.Start] == '\''))
+			{
+				range = new(range.Start + 1, range.End - 1);
+			}
 
-		return [];
+			arguments[i] = new(args.Substring(range.Start, range.Length));
+		}
+
+		return arguments;
 	}
 
 	public readonly string Name;

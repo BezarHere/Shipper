@@ -19,13 +19,26 @@ internal class Program
 				RunningInteractive = false;
 				break;
 			}
+
+			Argument[] arguments = Argument.ParseArguments(line);
+			int operation_result = Run(arguments);
+
+			// non-zero result indicate an error
+			if (operation_result != 0)
+			{
+				result = operation_result;
+				break;
+			}
 		}
 		return result;
 	}
 
 	private static int Run(Argument[] arguments)
 	{
-
+		for (int i = 0; i < arguments.Length; i++)
+		{
+			Console.WriteLine($"{arguments[i]}");
+		}
 		return 0;
 	}
 
