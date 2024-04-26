@@ -1,90 +1,40 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Shipper.Commands;
+using Shipper.Script;
 
 namespace Shipper;
 struct Argument
 {
-	public Argument(string name)
+	public Argument(string name, SpanRange? span = null)
 	{
 		Name = name;
+		Span = span ?? default;
 		Uses = [];
 	}
 
-	public override string ToString()
+	public override readonly string ToString()
 	{
 		return Name;
 	}
 
-	private enum ReadingMode
+	public readonly string Use(ICommand command) => Use(command.Name);
+
+	public readonly string Use(string use)
 	{
-		Normal,
-		DoubleQuotes,
-		SingleQuota
+		Uses.Add(use);
+		return Name;
 	}
+
+	public readonly string Name;
+	public readonly SpanRange Span;
+	public List<string> Uses;
+
+	public readonly bool HasBeenUsed { get => Uses.Count > 0; }
+
+	
 
 	private static SpanRange ReadCommandlet(string source, int index)
 	{
-		int start = -1;
-		ReadingMode mode = 0;
-		for (int i = index; i < source.Length; i++)
-		{
-			if (start > -1)
-			{
-				if (mode == ReadingMode.Normal)
-				{
-					if (char.IsWhiteSpace(source[i]))
-						return new(start, i);
-
-					if (source[i] == '"')
-					{
-						mode = ReadingMode.DoubleQuotes;
-					}
-					else if (source[i] == '\'')
-					{
-						mode = ReadingMode.SingleQuota;
-					}
-
-					continue;
-				}
-
-				if ((mode == ReadingMode.DoubleQuotes && source[i] == '"') | (mode == ReadingMode.SingleQuota && source[i] == '\''))
-				{
-					mode = ReadingMode.Normal;
-				}
-
-				
-
-				continue;
-			}
-
-			if (!char.IsWhiteSpace(source[i]))
-			{
-				start = i;
-
-				if (source[i] == '"')
-				{
-					mode = ReadingMode.DoubleQuotes;
-				}
-				else if (source[i] == '\'')
-				{
-					mode = ReadingMode.SingleQuota;
-				}
-				else
-				{
-					mode = ReadingMode.Normal;
-				}
-			}
-		}
-
-		if (start < index)
-		{
-			return new(0, 0);
-		}
-
-		return new(start, source.Length);
+		return Parser.ReadIdentifier(source, index);
 	}
 
 	private static SpanRange[] SplitCommandlets(string source)
@@ -120,16 +70,11 @@ struct Argument
 				range = new(range.Start + 1, range.End - 1);
 			}
 
-			arguments[i] = new(args.Substring(range.Start, range.Length));
+			arguments[i] = new(args.Substring(range.Start, range.Length), range);
 		}
 
 		return arguments;
 	}
-
-	public readonly string Name;
-	public List<string> Uses;
-
-	public readonly bool HasBeenRead { get => Uses.Count > 0; }
 
 }
 
