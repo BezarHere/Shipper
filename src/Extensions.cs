@@ -1,4 +1,5 @@
 ﻿using Shipper.TUI;
+using System.Numerics;
 
 namespace Shipper;
 
@@ -20,7 +21,7 @@ internal static class Extensions
 		};
 	}
 
-	
+
 	public static int[] IndexOfAll<T>(this T[] array, Predicate<T> predicate)
 	{
 		// FIXME: overkill size
@@ -40,6 +41,69 @@ internal static class Extensions
 		}
 
 		return results;
+	}
+
+	/// <summary>
+	/// evaluates all the elements using a transformer function
+	/// </summary>
+	/// <typeparam name="T">the array type</typeparam>
+	/// <param name="array">array to be find the most evaluated element</param>
+	/// <param name="evaluator">a transformer from an element to it's score</param>
+	/// <returns>the index of the element with the highest score, or -1 if the array is empty</returns>
+	public static int Evaluate<T>(this T[] array, Func<T, int> evaluator)
+	{
+		int score = int.MinValue;
+		int index = -1;
+
+		for (int i = 0; i < array.Length; i++)
+		{
+			int evl = evaluator(array[i]);
+			if (evl > score)
+			{
+				score = evl;
+				index = i;
+			}
+		}
+
+		return index;
+	}
+
+	/// <summary>
+	/// counts all contiguous elements satisfying the predicate, stops when the predicate fails
+	/// </summary>
+	/// <typeparam name="T">the array type</typeparam>
+	/// <param name="array">the array</param>
+	/// <param name="start">the counting start position</param>
+	/// <param name="predicate">the counter predicate</param>
+	/// <returns>how many elements where counted</returns>
+	public static int CountContinues<T>(this T[] array, Predicate<T> predicate, int start = 0)
+	{
+		for (int i = start; i < array.Length; i++)
+		{
+			if (!predicate(array[i]))
+				return i - start;
+		}
+		return array.Length - start;
+	}
+
+	public static T ToKilobyte<T>(this T value) where T : IShiftOperators<T, int, T>, INumber<T>
+	{
+		return value << 10;
+	}
+
+	public static T ToMegabyte<T>(this T value) where T : IShiftOperators<T, int, T>, INumber<T>
+	{
+		return value << 20;
+	}
+
+	public static T AsKilobyte<T>(this T value) where T : IShiftOperators<T, int, T>, INumber<T>
+	{
+		return value >> 10;
+	}
+
+	public static T AsMegabyte<T>(this T value) where T : IShiftOperators<T, int, T>, INumber<T>
+	{
+		return value >> 20;
 	}
 
 }

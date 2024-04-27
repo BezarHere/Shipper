@@ -140,6 +140,13 @@ static class ShipScript
 			if (expects_separator)
 			{
 				int separator = IndexOfEntryValueSeparator(line, i);
+
+				// reached the end of the line, stop reading
+				if (separator >= line.Length)
+				{
+					break;
+				}
+
 				if (separator < i)
 				{
 					Highlight highlight = new()
@@ -286,6 +293,11 @@ static class ShipScript
 				else
 				{
 					mode = Parser.ReadingMode.Normal;
+
+					// check for the case when this value is the a single character
+					// at the end of the source (e.g. "bla, bla, bla, S")
+					if (i == source.Length - 1)
+						return new(start, start + 1);
 				}
 
 
@@ -323,10 +335,20 @@ static class ShipScript
 		// has set a start but didn't complete string reading?
 		if (start >= 0)
 		{
+			Highlight highlight = new()
+			{
+				Text = new(source, HighlightColor.Announcement),
+				Span = new(start, start + 1)
+			};
+
+
 			if (mode == Parser.ReadingMode.Normal)
-				Console.WriteLine($"Could not read string at [{start}] from source: \"{source}\"");
+				highlight.Message = $"Could not read value";
 			if (mode == Parser.ReadingMode.DoubleQuotes || mode == Parser.ReadingMode.SingleQuota)
-				Console.WriteLine($"Unclosed string at [{start}] in source: \"{source}\"");
+				highlight.Message = $"Unclosed string";
+
+			highlight.Message.Color = HighlightColor.Error;
+			highlight.Draw();
 		}
 
 		return default;

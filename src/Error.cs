@@ -8,6 +8,7 @@ enum Error
 	UnexpectedArguments,
 	ExpectedArgument,
 	ExpectedArguments,
+	FileDoesNotExist,
 	UnknownCommand,
 }
 
@@ -24,6 +25,7 @@ static class ErrorUtility
 			Error.UnexpectedArguments => "UnexpectedArguments",
 			Error.ExpectedArgument => "ExpectedArgument",
 			Error.ExpectedArguments => "ExpectedArguments",
+			Error.FileDoesNotExist => "FileDoesNotExist",
 			Error.UnknownCommand => "UnknownCommand",
 			_ => "UNKNOWN",
 		};

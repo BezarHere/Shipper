@@ -2,6 +2,7 @@
 using Shipper.Commands;
 using Shipper.Script;
 using Shipper.TUI;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 
@@ -73,7 +74,7 @@ internal class Program
 			{
 				Highlight highlight = new()
 				{
-					Text = input.Source,
+					Text = new (input.Source, HighlightColor.Announcement),
 					Message = new($"Unknown argument No.{i}", HighlightColor.Warning),
 					Span = arguments[i].Span,
 				};
@@ -118,7 +119,22 @@ internal class Program
 
 	public static int Main(string[] args)
 	{
+		Console.Title = "Shipper";
 		Environment.Init();
+
+		if (DateTime.Now.Day == 1 && DateTime.Now.Month == 4)
+			Console.Title = "Shipper: [INSERT APRIL JOKE]";
+
+		// testing resolve
+		Console.WriteLine(FilePath.Resolve(@".\project_demo.ship"));
+		Console.WriteLine(FilePath.Resolve(@"..\project_demo.ship"));
+		Console.WriteLine(FilePath.Resolve(@"..\..\project_demo.ship"));
+		Console.WriteLine(FilePath.Resolve(@"..\..\..\project_demo.ship"));
+		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\project_demo.ship"));
+		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\..\project_demo.ship"));
+		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\..\..\project_demo.ship"));
+		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\..\..\..\project_demo.ship"));
+		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\..\..\..\..\project_demo.ship"));
 
 		if (args.Length == 0)
 			return (int)RunInteractive();

@@ -23,9 +23,10 @@ static class Environment
 
 	private static ICommand[] GenerateCommands()
 	{
-		List<ICommand> commands_list = new(32)
+		List<ICommand> commands_list = new()
 		{
-			new BuildCommand()
+			new BuildCommand(),
+			new StatsCommand(),
 		};
 
 		return commands_list.ToArray();

@@ -95,5 +95,6 @@ internal struct Highlight : ITUI
 	public ColorString Text = "sample";
 	public ColorString Message = "message";
 	public IndexRange Span = new(0, 4);
+	public IndexRange ExtendedSpan = new();
 
 }

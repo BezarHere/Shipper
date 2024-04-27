@@ -7,6 +7,8 @@ readonly struct IndexRange(int start, int end) : IEnumerable<int>
 	public readonly int End = end;
 	public readonly int Length { get => End - Start; }
 
+	public IndexRange() : this(-1, -1) { }
+
 	/// <summary>
 	/// valid ranges have non-zero, positive length
 	/// </summary>
@@ -24,7 +26,7 @@ readonly struct IndexRange(int start, int end) : IEnumerable<int>
 
 	public IEnumerator<int> GetEnumerator()
 	{
-		for (int i =  Start; i <= End; i++) yield return i;
+		for (int i = Start; i <= End; i++) yield return i;
 	}
 
 	IEnumerator IEnumerable.GetEnumerator()
@@ -41,5 +43,5 @@ readonly struct IndexRange(int start, int end) : IEnumerable<int>
 	{
 		return range.Length;
 	}
-	
+
 }
