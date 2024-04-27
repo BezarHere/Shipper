@@ -1,6 +1,8 @@
 ﻿
 using Shipper.Commands;
+using Shipper.Script;
 using Shipper.TUI;
+using System.Reflection;
 using System.Text;
 
 namespace Shipper;
@@ -72,8 +74,8 @@ internal class Program
 				Highlight highlight = new()
 				{
 					Text = input.Source,
-					Message = $"Unknown argument No.{i}",
-					Range = arguments[i].Span,
+					Message = new($"Unknown argument No.{i}", HighlightColor.Warning),
+					Span = arguments[i].Span,
 				};
 				highlight.Draw(Console.Out);
 			}
@@ -90,7 +92,7 @@ internal class Program
 		for (int i = 0; i < args.Length; i++)
 		{
 			int length = args[i].Length + (args[i].Contains(' ') ? 2 : 0);
-			arguments[i] = new(args[i], new SpanRange(position, length));
+			arguments[i] = new(args[i], new IndexRange(position, length));
 			position += length + 1;
 		}
 
@@ -116,7 +118,7 @@ internal class Program
 
 	public static int Main(string[] args)
 	{
-		//# Environment is initialized in it's ctor
+		Environment.Init();
 
 		if (args.Length == 0)
 			return (int)RunInteractive();
@@ -125,6 +127,6 @@ internal class Program
 		return (int)Run(input);
 	}
 
-	public static Environment Environment { get; private set; } = new();
+
 	public static bool RunningInteractive { get; private set; } = false;
 }

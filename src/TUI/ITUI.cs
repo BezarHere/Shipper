@@ -9,6 +9,6 @@ namespace Shipper.TUI;
 internal interface ITUI
 {
 	abstract void Draw(TextWriter writer);
-
 }
+
 

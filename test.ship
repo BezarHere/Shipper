@@ -1,0 +1,7 @@
+project = "."
+flies = john, marly, tobais, jamal
+# this is a standalone comment!!
+desc = "#this is an injected comment in a string (dangerose)"
+volcanos = ohno!, "string also with a"
+null_value = 
+80085 = number_keys!, "trailing comma!",

@@ -11,7 +11,7 @@ static class Parser
 		SingleQuota
 	}
 
-	public static SpanRange ReadIdentifier(string source, int index)
+	public static IndexRange ReadIdentifier(string source, int index)
 	{
 		int start = -1;
 		ReadingMode mode = 0;

@@ -4,7 +4,7 @@ using Shipper.Script;
 namespace Shipper;
 struct Argument
 {
-	public Argument(string name, SpanRange? span = null)
+	public Argument(string name, IndexRange? span = null)
 	{
 		Name = name;
 		Span = span ?? default;
@@ -25,25 +25,25 @@ struct Argument
 	}
 
 	public readonly string Name;
-	public readonly SpanRange Span;
+	public readonly IndexRange Span;
 	public List<string> Uses;
 
 	public readonly bool HasBeenUsed { get => Uses.Count > 0; }
 
 	
 
-	private static SpanRange ReadCommandlet(string source, int index)
+	private static IndexRange ReadCommandlet(string source, int index)
 	{
 		return Parser.ReadIdentifier(source, index);
 	}
 
-	private static SpanRange[] SplitCommandlets(string source)
+	private static IndexRange[] SplitCommandlets(string source)
 	{
-		List<SpanRange> ranges = new();
+		List<IndexRange> ranges = new();
 		int index = 0;
 		while (index < source.Length)
 		{
-			SpanRange range = ReadCommandlet(source, index);
+			IndexRange range = ReadCommandlet(source, index);
 			if (!range.Valid)
 			{
 				break;
@@ -58,12 +58,12 @@ struct Argument
 
 	public static Argument[] ParseArguments(string args)
 	{
-		SpanRange[] commandlets = SplitCommandlets(args);
+		IndexRange[] commandlets = SplitCommandlets(args);
 		Argument[] arguments = new Argument[commandlets.Length];
 
 		for (int i = 0; i < commandlets.Length; i++)
 		{
-			SpanRange range = commandlets[i];
+			IndexRange range = commandlets[i];
 			// if the commandlet starts and ends with quotes, trim the quotes (e.g. `"hello there"` -> `hello there`)
 			if (args[range.Start] == args[range.End - 1] && (args[range.Start] == '"' || args[range.Start] == '\''))
 			{

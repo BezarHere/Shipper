@@ -1,19 +1,12 @@
 ﻿using Shipper.Commands;
+using Shipper.Script;
 
 namespace Shipper;
-class Environment
+static class Environment
 {
-	public Environment()
+	public static ICommand? GetCommand(string name)
 	{
-		Commands =
-		[
-			new BuildCommand(),
-		];
-	}
-
-	public ICommand? GetCommand(string name)
-	{
-		foreach (ICommand command in Commands)
+		foreach (ICommand command in commands)
 		{
 			if (command.Name == name)
 				return command;
@@ -21,5 +14,25 @@ class Environment
 		return null;
 	}
 
-	public ICommand[] Commands { get; init; }
+	internal static void Init()
+	{
+		if (initialized) return;
+		initialized = true;
+		commands = GenerateCommands();
+	}
+
+	private static ICommand[] GenerateCommands()
+	{
+		List<ICommand> commands_list = new(32)
+		{
+			new BuildCommand()
+		};
+
+		return commands_list.ToArray();
+	}
+
+	private static bool initialized = false;
+	private static ICommand[] commands = [];
+	public static bool Verbose { get; private set; } = false;
+	public static FilePath p = new(".");
 }
