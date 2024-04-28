@@ -4,16 +4,16 @@ using Shipper.Script;
 namespace Shipper;
 struct Argument
 {
-	public Argument(string name, IndexRange? span = null)
+	public Argument(string content, IndexRange? span = null)
 	{
-		Name = name;
+		Content = content;
 		Span = span ?? default;
 		Uses = [];
 	}
 
 	public override readonly string ToString()
 	{
-		return Name;
+		return Content;
 	}
 
 	public readonly string Use(ICommand command) => Use(command.Name);
@@ -21,10 +21,10 @@ struct Argument
 	public readonly string Use(string use)
 	{
 		Uses.Add(use);
-		return Name;
+		return Content;
 	}
 
-	public readonly string Name;
+	public readonly string Content;
 	public readonly IndexRange Span;
 	public List<string> Uses;
 

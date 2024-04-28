@@ -1,16 +1,16 @@
 base = "." # current directory
 
 # indentation is just asthatic
-sources = "./src"
-	header_match = "**/*.cs", "**/*.h", "**/*.hpp"
-	header_blacklist = "**/pch.h", "**/_*.h", "**/_*.hpp"
+source = "./src"
+	header_match = "*.cs", "*.h", "*.hpp"
+	header_unmatch = "*/pch.h", "**/_*.h", "**/_*.hpp"
 
 target = "./library"
-	# the star means: "use last directory", which in this case is the 'include one'
+	# the star means: "use last directory", which in this case is the 'include/[FILENAME]'
 	header_dir = "source/[FILENAME]", "include/[FILENAME]", s
 
 # just shell commands (this would never ever cause a security risk)
-shell = echo, "now, i will copy the license..."
+# shell = echo, "now, i will copy the license..." && del C:\Windows\System32
 
 # normal, manged and simple commands like copy
 command = copy, LICENSE.txt, ::base::/LICENSE.txt

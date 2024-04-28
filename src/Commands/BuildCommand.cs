@@ -24,7 +24,7 @@ class BuildCommand : ICommand
 			return Error.FileDoesNotExist;
 		}
 
-		Entry[] entries = ShipScript.Load(File.OpenText(path));
+		Entry[] entries = ShipScript.Load(File.OpenText(path)).ToArray();
 
 		Dictionary<string, Entry[]> entry_map = new();
 
@@ -32,15 +32,19 @@ class BuildCommand : ICommand
 		{
 			if (entry_map.ContainsKey(entry.Name))
 				continue;
-			int[] all = entries.IndexOfAll(e => e.Name == entry.Name);
-			entry_map[entry.Name] = (from i in all select entries[i]).ToArray();
+			entry_map[entry.Name] = (from e in entries where e.Name == entry.Name select e).ToArray();
 		}
 
-		Project project = new(entry_map);
+		Project project = new(entry_map, new(path));
 
 		foreach (FilePath fp in project.GetAvailableFiles())
 		{
 			Console.WriteLine($"found file: '{fp}'");
+		}
+
+		foreach (FilePath fp in project.GetHeaderFiles())
+		{
+			Console.WriteLine($"included file: '{fp}'");
 		}
 
 		return 0;

@@ -1,25 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Shipper;
 
 internal readonly struct FilePath
 {
 
-	public FilePath(string path)
+	public FilePath(string path) : this(path, FilePath.WorkingDir)
+	{
+	}
+
+	public FilePath(string path, in FilePath base_path)
 	{
 		ArgumentNullException.ThrowIfNull(path);
-		this.Content = Path.GetFullPath(path);
+		Content = Resolve(path, base_path.Content);
 	}
 
 	public override string ToString()
 	{
 		return Content;
+	}
+
+	public static implicit operator string(FilePath path)
+	{
+		return path.Content;
+	}
+
+	public static explicit operator FileInfo(FilePath filePath)
+	{
+		return new(filePath.Content);
+	}
+
+	public static explicit operator DirectoryInfo(FilePath filePath)
+	{
+		return new(filePath.Content);
 	}
 
 	public readonly IEnumerable<FilePath> GetFiles()
@@ -34,6 +48,19 @@ internal readonly struct FilePath
 		if (!IsDirectory)
 			return Enumerable.Empty<FilePath>();
 		return from dir in Directory.EnumerateDirectories(this.Content) select new FilePath(dir);
+	}
+
+	/// <summary>
+	/// hashes key attributes about the target file; theoretically giving a different hash each time the file changes.
+	/// </summary>
+	/// <returns>a hash code generated for the target file</returns>
+	public readonly int GetFileHashCode()
+	{
+		if (!IsFile)
+			return ~0;
+		FileInfo fileInfo = new(this.Content);
+		return fileInfo.Name.GetHashCode() ^ fileInfo.Length.InterlaceHalfBits()
+			^ fileInfo.LastWriteTime.GetHashCode() ^ fileInfo.CreationTime.GetHashCode();
 	}
 
 	/// <summary>
@@ -85,7 +112,7 @@ internal readonly struct FilePath
 			}
 		}
 
-		if (seg_start > 0)
+		if (seg_start >= 0)
 		{
 			segments.Add(new(seg_start, path.Length));
 		}
@@ -120,7 +147,7 @@ internal readonly struct FilePath
 
 				// gets the n-th parent (e.g. three '..' in a row will get the third parent or the grand grand parent)
 				for (int n = 0; n < count + 1; n++)
-				{ 
+				{
 					path_base = GetParent(path_base);
 				}
 
@@ -135,7 +162,8 @@ internal readonly struct FilePath
 		}
 	}
 
-	public readonly FilePath Parent { get => new(FilePath.GetParent(Content)); }
+
+	public readonly FilePath Parent { get => new(GetParent(Content)); }
 	public readonly bool Exists { get => Path.Exists(Content); }
 	public readonly bool IsDirectory { get => Directory.Exists(Content); }
 	public readonly bool IsFile { get => File.Exists(Content); }
@@ -143,7 +171,7 @@ internal readonly struct FilePath
 	public readonly string Content;
 
 
-	public static readonly FilePath Current = new(Assembly.GetExecutingAssembly().Location);
-	public static readonly FilePath BaseDir = Current.Parent;
-	public static readonly FilePath WorkingDir = BaseDir; // TODO: find out how to get the working directory
+	public static readonly FilePath Executable = new(Assembly.GetExecutingAssembly().Location);
+	public static readonly FilePath ParentDir = Executable.Parent;
+	public static readonly FilePath WorkingDir = new(System.Environment.CurrentDirectory);
 }

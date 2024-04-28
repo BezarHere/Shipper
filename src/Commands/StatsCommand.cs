@@ -25,6 +25,8 @@ internal class StatsCommand : ICommand
 		Console.WriteLine($"Session ID: {process.SessionId}");
 		Console.WriteLine($"Start time: {process.StartTime}");
 		Console.WriteLine($"Threads count: {process.Threads.Count}");
+		Console.WriteLine($"Parent Dir: {FilePath.ParentDir}");
+		Console.WriteLine($"Working Dir: {FilePath.WorkingDir}");
 		Console.WriteLine($"Memory:");
 		Console.WriteLine($"  paged memory: {process.PagedMemorySize64.AsMegabyte()}mb [{process.PeakPagedMemorySize64.AsMegabyte()}mb]");
 		Console.WriteLine($"  working memory: {process.WorkingSet64.AsMegabyte()}mb [{process.PeakWorkingSet64.AsMegabyte()}mb]");

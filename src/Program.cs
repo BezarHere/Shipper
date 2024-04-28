@@ -27,8 +27,7 @@ internal class Program
 				break;
 			}
 
-			Argument[] arguments = Argument.ParseArguments(line);
-			Error error = Run(new(line, arguments));
+			Error error = Run(LineInput.FromLine(line));
 
 			// non-zero result indicate an error
 			//if (error != Error.Ok)
@@ -46,11 +45,11 @@ internal class Program
 	private static Error Run(LineInput input)
 	{
 		var arguments = input.Arguments;
-		ICommand? command = Environment.GetCommand(arguments[0].Name);
+		ICommand? command = ShipCore.GetCommand(arguments[0].Content);
 
 		if (command is null)
 		{
-			Console.WriteLine($"Unknown command: '{arguments[0].Name}'");
+			Console.WriteLine($"Unknown command: '{arguments[0].Content}'");
 
 
 			return Error.UnknownCommand;
@@ -74,7 +73,7 @@ internal class Program
 			{
 				Highlight highlight = new()
 				{
-					Text = new (input.Source, HighlightColor.Announcement),
+					Text = new(input.Source, HighlightColor.Announcement),
 					Message = new($"Unknown argument No.{i}", HighlightColor.Warning),
 					Span = arguments[i].Span,
 				};
@@ -85,62 +84,20 @@ internal class Program
 		return Error.Ok;
 	}
 
-	private static LineInput MarshalArgs(string[] args)
-	{
-		Argument[] arguments = new Argument[args.Length];
-		int position = 0;
-
-		for (int i = 0; i < args.Length; i++)
-		{
-			int length = args[i].Length + (args[i].Contains(' ') ? 2 : 0);
-			arguments[i] = new(args[i], new IndexRange(position, length));
-			position += length + 1;
-		}
-
-		StringBuilder source = new();
-		foreach (string arg in args)
-		{
-			if (arg.Contains(' '))
-			{
-				source.Append('"');
-				source.Append(arg);
-				source.Append('"');
-			}
-			else
-			{
-				source.Append(arg);
-			}
-
-			source.Append(' ');
-		}
-
-		return new(source.ToString().TrimEnd(), arguments);
-	}
-
 	public static int Main(string[] args)
 	{
 		Console.Title = "Shipper";
-		Environment.Init();
+		ShipCore.Init();
 
 		if (DateTime.Now.Day == 1 && DateTime.Now.Month == 4)
 			Console.Title = "Shipper: [INSERT APRIL JOKE]";
 
-		// testing resolve
-		Console.WriteLine(FilePath.Resolve(@".\project_demo.ship"));
-		Console.WriteLine(FilePath.Resolve(@"..\project_demo.ship"));
-		Console.WriteLine(FilePath.Resolve(@"..\..\project_demo.ship"));
-		Console.WriteLine(FilePath.Resolve(@"..\..\..\project_demo.ship"));
-		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\project_demo.ship"));
-		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\..\project_demo.ship"));
-		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\..\..\project_demo.ship"));
-		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\..\..\..\project_demo.ship"));
-		Console.WriteLine(FilePath.Resolve(@"..\..\..\..\..\..\..\..\project_demo.ship"));
+		Glob glob = new("*[Pp]*.ship");
 
 		if (args.Length == 0)
 			return (int)RunInteractive();
 
-		LineInput input = MarshalArgs(args);
-		return (int)Run(input);
+		return (int)Run(LineInput.FromArgs(args));
 	}
 
 

@@ -2,7 +2,7 @@
 using Shipper.Script;
 
 namespace Shipper;
-static class Environment
+static class ShipCore
 {
 	public static ICommand? GetCommand(string name)
 	{

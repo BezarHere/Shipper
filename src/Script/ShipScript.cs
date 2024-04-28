@@ -1,4 +1,5 @@
 ﻿using Shipper.TUI;
+using System.Collections.Specialized;
 using System.Linq.Expressions;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
@@ -38,9 +39,8 @@ readonly struct Entry(string name, string[]? values = null)
 static class ShipScript
 {
 
-	public static Entry[] Load(TextReader reader)
+	public static IEnumerable<Entry> Load(TextReader reader)
 	{
-		List<Entry> entries = new();
 		foreach (string line in ReadAllLines(reader))
 		{
 			string processed_line = PreprocessLine(line);
@@ -52,15 +52,118 @@ static class ShipScript
 			if (entry_nullable is not Entry entry)
 				continue;
 
-			entries.Add(entry);
+			yield return entry;
 		}
-		return entries.ToArray();
 	}
 	public static void Dump(TextWriter writer, Entry[] entries)
 	{
 		foreach (Entry entry in entries)
 		{
 			writer.WriteLine(entry.ToString());
+		}
+	}
+
+	public static string SubstituteMacros(string source, int index, Dictionary<string, string> macros)
+	{
+		StringBuilder builder = new(source.Length);
+		int last = 0;
+		foreach (IndexRange range in ApplicableRanges(source, index))
+		{
+			if (range.Start - last > 0)
+				builder.Append(source.AsSpan(last, range.Start - last));
+
+			string subsource = source.Substring(range);
+
+			foreach (var (key, value) in macros)
+			{
+				subsource = subsource.Replace(key, value);
+			}
+
+			builder.Append(subsource);
+
+			last = range.End;
+		}
+		if (last < source.Length)
+			builder.Append(source.AsSpan(last, source.Length - last));
+		return builder.ToString();
+	}
+
+	public static IEnumerable<IndexRange> ApplicableRanges(string source, int index)
+	{
+		int start = index;
+		Parser.ReadingMode mode = Parser.ReadingMode.Normal;
+
+		for (int i = index; i < source.Length; i++)
+		{
+			// skip escaped
+			if (source[i] == '\\')
+			{
+				// no range should contain an escape (outside of a string) or it's escaped char
+				if (mode == Parser.ReadingMode.Normal)
+					yield return new IndexRange(start, i);
+				// skip escaped char
+				i++;
+				// start after the forward slash and the escaped char
+				start = i + 1;
+				continue;
+			}
+
+			if (mode == Parser.ReadingMode.DoubleQuotes || mode == Parser.ReadingMode.SingleQuota)
+			{
+				if (source[i] == (mode == Parser.ReadingMode.DoubleQuotes ? '"' : '\''))
+				{
+					mode = Parser.ReadingMode.Normal;
+					start = i + 1;
+				}
+
+				continue;
+			}
+
+			// Normal mode (outside strings)
+
+			if (source[i] == '"' || source[i] == '\'')
+			{
+				mode = source[i] == '"' ? Parser.ReadingMode.DoubleQuotes : Parser.ReadingMode.SingleQuota;
+				yield return new IndexRange(start, i);
+				start = i;
+				continue;
+			}
+
+			// last iteration outside a string, yield the range
+			if (i == source.Length - 1)
+			{
+				yield return new IndexRange(start, i);
+			}
+
+		}
+	}
+
+	public static string EscapeString(string source, int start)
+	{
+		StringBuilder builder = new(source.Length);
+		int last = 0;
+		foreach (int i in GetEscapedCharIndices(source, start))
+		{
+			if (i - last > 0)
+				builder.Append(source.AsSpan(last, i - last));
+			builder.Append(source[i + 1]);
+			last = i + 2;
+		}
+		if (last < source.Length)
+			builder.Append(source.AsSpan(last, source.Length - last));
+		return builder.ToString();
+	}
+
+	private static IEnumerable<int> GetEscapedCharIndices(string source, int start)
+	{
+		int index = start - 2;
+		while (index < source.Length)
+		{
+			// +2 to skip current + next char (the escaped one)
+			index = source.IndexOf('\\', index + 2);
+			if (index == -1)
+				break;
+			yield return index;
 		}
 	}
 
@@ -116,14 +219,9 @@ static class ShipScript
 			index = equal_sign + 1;
 		}
 
-		IndexRange[] ranges = ReadEntryValues(line, index);
-		string[] values = new string[ranges.Length];
-		for (int i = 0; i < ranges.Length; i++)
-		{
-			values[i] = line.Substring(ranges[i]);
-		}
+		IEnumerable<string> values = from r in ReadEntryValues(line, index) select line.Substring(r);
 
-		return new(line.Substring(key_range), values);
+		return new(line.Substring(key_range), values.ToArray());
 	}
 
 	private static IndexRange ReadEntryKey(string line, int index)
@@ -131,9 +229,8 @@ static class ShipScript
 		return ReadString(line, index);
 	}
 
-	private static IndexRange[] ReadEntryValues(string line, int index)
+	private static IEnumerable<IndexRange> ReadEntryValues(string line, int index)
 	{
-		List<IndexRange> ranges = new();
 		bool expects_separator = false;
 		for (int i = index; i < line.Length; i++)
 		{
@@ -192,17 +289,16 @@ static class ShipScript
 			// check & trim quotes
 			if (line[range.Start] == line[range.End - 1] && (line[range.Start] == '\'' || line[range.Start] == '"'))
 			{
-				ranges.Add(range.Expanded(-1));
+				yield return range.Expanded(-1);
 			}
 			else
 			{
-				ranges.Add(range);
+				yield return range;
 			}
 
 			expects_separator = true;
 		}
 
-		return ranges.ToArray();
 	}
 
 	/// <summary>

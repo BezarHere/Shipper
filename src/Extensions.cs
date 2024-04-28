@@ -21,26 +21,15 @@ internal static class Extensions
 		};
 	}
 
-
-	public static int[] IndexOfAll<T>(this T[] array, Predicate<T> predicate)
+	public static IEnumerable<int> IndexOfAll<T>(this IEnumerable<T> enumerable, Predicate<T> predicate)
 	{
-		// FIXME: overkill size
-		int[] results = new int[array.Length];
-		int count = 0;
-		for (int i = 0; i < array.Length; i++)
+		int counter = 0;
+		foreach (T value in enumerable)
 		{
-			if (predicate(array[i]))
-				results[count++] = i;
+			if (predicate(value))
+				yield return counter;
+			counter++;
 		}
-
-		if (count < array.Length)
-		{
-			int[] cut = new int[count];
-			Array.Copy(results, cut, count);
-			return cut;
-		}
-
-		return results;
 	}
 
 	/// <summary>
@@ -122,6 +111,16 @@ internal static class Extensions
 	public static T AsMegabyte<T>(this T value) where T : IShiftOperators<T, int, T>, INumber<T>
 	{
 		return value >> 20;
+	}
+
+	/// <summary>
+	/// interlaces bits of the long to create an int. lossy
+	/// </summary>
+	/// <param name="value">the value</param>
+	/// <returns>the interlaced int</returns>
+	public static int InterlaceHalfBits(this long value)
+	{
+		return (int)(value & 0xAAAA_AAAA) | (int)((value >> 32) & 0x5555_5555);
 	}
 
 }

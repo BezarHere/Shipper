@@ -25,11 +25,38 @@ internal struct Glob(string source)
 		public readonly IndexRange Range = range ?? new();
 		public readonly char[] Selected = [];
 
+		public int Length
+		{
+			get
+			{
+				return Type switch
+				{
+					SegmentType.Text => Range.Length,
+					SegmentType.CharSelect or SegmentType.CharSelectNot or SegmentType.DirectorySeparator => 1,
+					SegmentType.AnyName or SegmentType.AnyPath => int.MaxValue,
+					_ => 0,
+				};
+			}
+		}
 
+		public bool Greedy
+		{
+			get
+			{
+				if (Type == SegmentType.AnyName || Type == SegmentType.AnyPath)
+					return true;
+				return false;
+			}
+		}
 	}
 
-	// tests weather any segment 
-	public readonly bool Test(string path)
+	/// <summary>
+	/// tests if the path is matched by this glob
+	/// </summary>
+	/// <param name="path">the path to be tested</param>
+	/// <param name="strict">sets strict mode, making it a requirement to test the entire path</param>
+	/// <returns>if the glob matches the path</returns>
+	public readonly bool Test(string path, bool strict = false)
 	{
 		int index = 0;
 		for (int i = 0; i < segments.Length; i++)
@@ -49,7 +76,32 @@ internal struct Glob(string source)
 			if (index >= path.Length)
 				return i == segments.Length - 1;
 		}
+		
+		// strict makes it a requirement to finish the path/string
+		if (strict)
+			return index == segments.Length - 1;
+
 		return true;
+	}
+
+	private readonly (int pos, int len) TestWalkSegment(int segment_index, string path, int start_index, int skip = 0)
+	{
+		if (segments[segment_index].Greedy)
+			return (-1, 0);
+
+		int walk_end = path.Length - segments[segment_index].Length;
+		for (int i = start_index; i <= walk_end; i++)
+		{
+			int result = TestSegment(segment_index, path, i, 0);
+			if (result != 0)
+			{
+				if (skip <= 0)
+					return (i, result);
+
+				skip--;
+			}
+		}
+		return (-1, 0);
 	}
 
 	private readonly int TestSegment(int segment_index, string path, int index, int skip = 0)
@@ -96,8 +148,20 @@ internal struct Glob(string source)
 			// read until the next segment (if any) is satisfied
 			case SegmentType.AnyName:
 			{
+				if (segment_index == segments.Length - 1 || segments[segment_index].Length == 0)
+				{
+					return path.Length - index;
+				}
 
-				return 0;
+				var (pos, result) = TestWalkSegment(segment_index + 1, path, index, skip);
+
+				if (pos == -1 || result == 0)
+				{
+					// no need to return an error, next segment will fail
+					return path.Length - index;
+				}
+
+				return pos - index;
 			}
 
 			// read n path segment
@@ -219,6 +283,9 @@ internal struct Glob(string source)
 			if (i == source_ln - 1)
 				throw new ParseError("Expecting a termination ']'", (index..i), source);
 		}
+
+		// +1 for the terminating ']'; if ']' is not read, then it will turn to a text segment
+		count_raw++;
 
 		return new(
 				inverted ? SegmentType.CharSelectNot : SegmentType.CharSelect,
