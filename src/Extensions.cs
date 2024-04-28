@@ -72,18 +72,36 @@ internal static class Extensions
 	/// counts all contiguous elements satisfying the predicate, stops when the predicate fails
 	/// </summary>
 	/// <typeparam name="T">the array type</typeparam>
-	/// <param name="array">the array</param>
+	/// <param name="collection">the array</param>
 	/// <param name="start">the counting start position</param>
 	/// <param name="predicate">the counter predicate</param>
 	/// <returns>how many elements where counted</returns>
-	public static int CountContinues<T>(this T[] array, Predicate<T> predicate, int start = 0)
+	public static int CountContinues<T>(this T[] collection, Predicate<T> predicate, int start = 0)
 	{
-		for (int i = start; i < array.Length; i++)
+		for (int i = start; i < collection.Length; i++)
 		{
-			if (!predicate(array[i]))
+			if (!predicate(collection[i]))
 				return i - start;
 		}
-		return array.Length - start;
+		return collection.Length - start;
+	}
+
+	/// <summary>
+	/// counts all contiguous elements satisfying the predicate, stops when the predicate fails
+	/// </summary>
+	/// <typeparam name="T">the collection type</typeparam>
+	/// <param name="collection">the collection</param>
+	/// <param name="start">the counting start position</param>
+	/// <param name="predicate">the counter predicate</param>
+	/// <returns>how many elements where counted</returns>
+	public static int CountContinues<T>(this T collection, Predicate<T> predicate, int start = 0) where T : ICollection<T>, IList<T>
+	{
+		for (int i = start; i < collection.Count; i++)
+		{
+			if (!predicate(collection[i]))
+				return i - start;
+		}
+		return collection.Count - start;
 	}
 
 	public static T ToKilobyte<T>(this T value) where T : IShiftOperators<T, int, T>, INumber<T>
