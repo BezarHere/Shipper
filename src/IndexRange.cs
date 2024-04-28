@@ -26,7 +26,7 @@ readonly struct IndexRange(int start, int end) : IEnumerable<int>
 
 	public IEnumerator<int> GetEnumerator()
 	{
-		for (int i = Start; i <= End; i++) yield return i;
+		for (int i = Start; i < End; i++) yield return i;
 	}
 
 	IEnumerator IEnumerable.GetEnumerator()
@@ -37,6 +37,11 @@ readonly struct IndexRange(int start, int end) : IEnumerable<int>
 	public static implicit operator Range(IndexRange range)
 	{
 		return new(range.Start, range.End);
+	}
+
+	public static implicit operator IndexRange(Range range)
+	{
+		return new(range.Start.Value, range.End.Value);
 	}
 
 	public static explicit operator int(IndexRange range)
