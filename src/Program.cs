@@ -13,8 +13,8 @@ internal class Program
 	public static Error RunInteractive()
 	{
 		Console.WriteLine("Starting the interactive terminal:");
+		SetupInteractive();
 
-		RunningInteractive = true;
 		Error result = Error.Ok;
 
 		while (RunningInteractive)
@@ -45,7 +45,7 @@ internal class Program
 	private static Error Run(LineInput input)
 	{
 		var arguments = input.Arguments;
-		ICommand? command = ShipCore.GetCommand(arguments[0].Content);
+		ICommand? command = ShipperCore.GetCommand(arguments[0].Content);
 
 		if (command is null)
 		{
@@ -86,13 +86,7 @@ internal class Program
 
 	public static int Main(string[] args)
 	{
-		Console.Title = "Shipper";
-		ShipCore.Init();
-
-		if (DateTime.Now.Day == 1 && DateTime.Now.Month == 4)
-			Console.Title = "Shipper: [INSERT APRIL JOKE]";
-
-		Glob glob = new("*[Pp]*.ship");
+		ShipperCore.Init();
 
 		if (args.Length == 0)
 			return (int)RunInteractive();
@@ -100,6 +94,14 @@ internal class Program
 		return (int)Run(LineInput.FromArgs(args));
 	}
 
+	private static void SetupInteractive()
+	{
+		RunningInteractive = true;
+
+		Console.Title = "Shipper";
+		if (DateTime.Now.Day == 1 && DateTime.Now.Month == 4)
+			Console.Title = "Shipper: [INSERT APRIL JOKE]";
+	}
 
 	public static bool RunningInteractive { get; private set; } = false;
 }

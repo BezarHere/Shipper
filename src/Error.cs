@@ -5,11 +5,13 @@ enum Error
 	Ok = 0,
 	Fault,
 	UnexpectedArgument,
-	UnexpectedArguments,
 	ExpectedArgument,
-	ExpectedArguments,
 	FileDoesNotExist,
+	DirectoryDoesNotExist,
 	UnknownCommand,
+	UnauthorizedAccess,
+	PathTooLong,
+	UnsupportedOperation,
 }
 
 static class ErrorUtility
@@ -22,11 +24,13 @@ static class ErrorUtility
 			Error.Ok => "Ok",
 			Error.Fault => "Fault",
 			Error.UnexpectedArgument => "UnexpectedArgument",
-			Error.UnexpectedArguments => "UnexpectedArguments",
 			Error.ExpectedArgument => "ExpectedArgument",
-			Error.ExpectedArguments => "ExpectedArguments",
 			Error.FileDoesNotExist => "FileDoesNotExist",
+			Error.DirectoryDoesNotExist => "DirectoryDoesNotExist",
 			Error.UnknownCommand => "UnknownCommand",
+			Error.UnauthorizedAccess => "UnauthorizedAccess",
+			Error.PathTooLong => "PathTooLong",
+			Error.UnsupportedOperation => "UnsupportedOperation",
 			_ => "UNKNOWN",
 		};
 	}

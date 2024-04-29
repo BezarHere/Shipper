@@ -3,7 +3,6 @@
 namespace Shipper.Commands;
 interface ICommand
 {
-
 	public abstract Error Execute(Argument[] arguments);
 
 	public abstract string Name { get; }

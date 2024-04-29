@@ -1,5 +1,6 @@
 ﻿using Shipper.Commands;
 using Shipper.Script;
+using System.IO;
 
 namespace Shipper;
 
@@ -78,6 +79,21 @@ internal class Project
 
 	}
 
+	public static Project FromFile(FilePath filePath)
+	{
+		Entry[] entries = ShipScript.Load(File.OpenText(filePath)).ToArray();
+
+		Dictionary<string, Entry[]> entry_map = new();
+
+		foreach (Entry entry in entries)
+		{
+			if (entry_map.ContainsKey(entry.Name))
+				continue;
+			entry_map[entry.Name] = (from e in entries where e.Name == entry.Name select e).ToArray();
+		}
+
+		return new(entry_map, filePath);
+	}
 
 	public Error Start()
 	{
@@ -117,7 +133,7 @@ internal class Project
 		Error[] results = new Error[Commands.Length];
 		foreach (CommandMacro macro in Commands)
 		{
-			ICommand? command = ShipCore.GetCommand(macro.Name);
+			ICommand? command = ShipperCore.GetCommand(macro.Name);
 			if (command is null)
 			{
 				results[counter++] = Error.UnknownCommand;

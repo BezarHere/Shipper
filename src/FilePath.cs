@@ -129,6 +129,39 @@ internal readonly struct FilePath
 		return path[..index];
 	}
 
+	public static string GetName(string path)
+	{
+		path = path.TrimEnd('/', '\\');
+		int index = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
+		if (index < 0)
+			return "";
+		return path[(index + 1)..];
+	}
+
+	public static string GetBaseName(string path)
+	{
+		// we use the name to get the last extension dot for when the path already
+		// contains a dot e.g. 'G:/Shipper/.vs/something'
+		string name = GetName(path);
+		if (string.IsNullOrEmpty(name))
+			return name;
+		int extension_dot = name.LastIndexOf('.');
+		if (extension_dot == -1)
+			return name;
+		return name[..extension_dot];
+	}
+
+	public static string GetExtension(string path)
+	{
+		string name = GetName(path);
+		if (string.IsNullOrEmpty(name))
+			return name;
+		int extension_dot = name.LastIndexOf('.');
+		if (extension_dot == -1)
+			return name;
+		return name[(extension_dot + 1)..];
+	}
+
 	private static void ParseSegments(string[] segments, StringBuilder builder, string path_base)
 	{
 		void append(string str) => builder.Append(str).Append(Path.DirectorySeparatorChar);
@@ -164,6 +197,13 @@ internal readonly struct FilePath
 
 
 	public readonly FilePath Parent { get => new(GetParent(Content)); }
+	public readonly string Name { get => GetName(Content); }
+
+	/// <summary>
+	/// the file/directory name without the extension
+	/// </summary>
+	public readonly string BaseName { get => GetBaseName(Content); }
+	public readonly string Extension { get => GetExtension(Content); }
 	public readonly bool Exists { get => Path.Exists(Content); }
 	public readonly bool IsDirectory { get => Directory.Exists(Content); }
 	public readonly bool IsFile { get => File.Exists(Content); }

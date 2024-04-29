@@ -13,29 +13,21 @@ class BuildCommand : ICommand
 	public Error Execute(Argument[] arguments)
 	{
 		if (arguments.Length == 0)
-			return Error.ExpectedArguments;
-		string path = arguments[0].Use(this);
-		if (path == "test")
-			path = @"F:\Assets\visual studio\Shipper\test.ship";
+			return Error.ExpectedArgument;
+		FilePath path = new(arguments[0].Use(this));
 
-		if (!File.Exists(path))
+		if (string.IsNullOrEmpty(path.Extension))
+		{
+			path = new($"{path}.ship");
+		}
+
+		if (!path.Exists)
 		{
 			Console.WriteLine($"Project file does not exist: '{path}'");
 			return Error.FileDoesNotExist;
 		}
 
-		Entry[] entries = ShipScript.Load(File.OpenText(path)).ToArray();
-
-		Dictionary<string, Entry[]> entry_map = new();
-
-		foreach (Entry entry in entries)
-		{
-			if (entry_map.ContainsKey(entry.Name))
-				continue;
-			entry_map[entry.Name] = (from e in entries where e.Name == entry.Name select e).ToArray();
-		}
-
-		Project project = new(entry_map, new(path));
+		Project project = Project.FromFile(path);
 
 		foreach (FilePath fp in project.GetAvailableFiles())
 		{
