@@ -2,7 +2,7 @@
 using Shipper.Script;
 
 namespace Shipper;
-static class ShipCore
+static class ShipperCore
 {
 	public static ICommand? GetCommand(string name)
 	{
@@ -23,13 +23,25 @@ static class ShipCore
 
 	private static ICommand[] GenerateCommands()
 	{
-		List<ICommand> commands_list = new()
-		{
+		ICommand[] commands_array =
+		[
 			new BuildCommand(),
-			new StatsCommand(),
-		};
 
-		return commands_list.ToArray();
+			new StatsCommand(),
+			new ProxyCommand<StatsCommand>("stat"),
+
+			new CopyCommand(),
+			new ProxyCommand<CopyCommand>("cp"),
+
+			new MoveCommand(),
+			new ProxyCommand<MoveCommand>("rename"),
+
+			new DeleteCommand(),
+			new ProxyCommand<DeleteCommand>("del"),
+			new ProxyCommand<DeleteCommand>("rm"),
+		];
+
+		return commands_array;
 	}
 
 	private static bool initialized = false;
