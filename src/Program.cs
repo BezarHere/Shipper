@@ -1,15 +1,12 @@
 ﻿
 using Shipper.Commands;
-using Shipper.Script;
 using Shipper.TUI;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text;
 
 namespace Shipper;
 
 internal class Program
 {
+
 	public static Error RunInteractive()
 	{
 		Console.WriteLine("Starting the interactive terminal:");
@@ -50,8 +47,6 @@ internal class Program
 		if (command is null)
 		{
 			Console.WriteLine($"Unknown command: '{arguments[0].Content}'");
-
-
 			return Error.UnknownCommand;
 		}
 
@@ -59,7 +54,11 @@ internal class Program
 
 		Argument[] passed_arguments = new Argument[arguments.Length - 1];
 		Array.Copy(arguments, 1, passed_arguments, 0, passed_arguments.Length);
-		Error result = command.Execute(passed_arguments);
+
+		Error result = command.Execute(
+			passed_arguments,
+			RunningInteractive ? CommandCallContext.InteractiveTerminal : CommandCallContext.ProgramStartup
+			);
 
 		if (result != Error.Ok)
 		{
@@ -84,9 +83,13 @@ internal class Program
 		return Error.Ok;
 	}
 
-	public static int Main(string[] args)
+	private static int Main(string[] args)
 	{
 		ShipperCore.Init();
+
+		Glob glob = new("**/*.cs");
+		string test = "F:\\Assets\\visual studio\\Shipper\\project_demo.cs";
+		Console.WriteLine($"test = {glob.Test(test)}, {glob.Test(test, true)}");
 
 		if (args.Length == 0)
 			return (int)RunInteractive();

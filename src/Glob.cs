@@ -9,9 +9,12 @@ internal struct Glob(string source)
 		DirectorySeparator,
 		CharSelect, // select chars '[CcBb]all.json'
 		CharSelectNot, // select any other chars 'non-vowel_[!aeuioy].doc'
+		AnyChar, // ?
 		AnyName, // star
 		AnyPath, // double star
 	}
+
+	private delegate int GreedySegmentTester(string path, IndexRange range);
 
 	private readonly struct Segment(SegmentType type, IndexRange? range = null)
 	{
@@ -31,7 +34,7 @@ internal struct Glob(string source)
 			{
 				return Type switch
 				{
-					SegmentType.Text => Range.Length,
+					SegmentType.Text or SegmentType.AnyChar => Range.Length,
 					SegmentType.CharSelect or SegmentType.CharSelectNot or SegmentType.DirectorySeparator => 1,
 					SegmentType.AnyName or SegmentType.AnyPath => int.MaxValue,
 					_ => 0,
@@ -59,10 +62,12 @@ internal struct Glob(string source)
 	public readonly bool Test(string path, bool strict = false)
 	{
 		int index = 0;
+		Span<int> skip_table = stackalloc int[segments.Length];
+
 		for (int i = 0; i < segments.Length; i++)
 		{
 			// TODO: handle AnyName/AnyPath segment's greediness
-			int result = TestSegment(i, path, index, 0);
+			int result = TestSegment(i, path, index, skip_table[i]);
 
 			// segment failed
 			if (result == 0)
@@ -76,7 +81,7 @@ internal struct Glob(string source)
 			if (index >= path.Length)
 				return i == segments.Length - 1;
 		}
-		
+
 		// strict makes it a requirement to finish the path/string
 		if (strict)
 			return index == segments.Length - 1;
@@ -102,6 +107,51 @@ internal struct Glob(string source)
 			}
 		}
 		return (-1, 0);
+	}
+
+	private readonly (int pos, int len) TestWalkSegmentReversed(int segment_index, string path, int start_index, int skip = 0)
+	{
+		if (segments[segment_index].Greedy)
+			return (-1, 0);
+
+		int walk_end = path.Length - segments[segment_index].Length;
+		for (int i = walk_end; i >= start_index; i--)
+		{
+			int result = TestSegment(segment_index, path, i, 0);
+			if (result != 0)
+			{
+				if (skip <= 0)
+					return (i, result);
+
+				skip--;
+			}
+		}
+		return (-1, 0);
+	}
+
+
+	/// <returns>the length read</returns>
+	private static int TestSegmentAnyName(string path, IndexRange range)
+	{
+		foreach (int i in range)
+		{
+			if (path[i].IsDirectorySeparator())
+			{
+				return i - range.Start;
+			}
+		}
+		return range.Length;
+	}
+
+	/// <returns>the length read</returns>
+	private static int TestSegmentAnyPath(string path, IndexRange range)
+	{
+		// to stop warnings, TODO: find a 'MaybeUnused'-like attribute
+		_ = path;
+
+		// any path is just any name but matching the directory separator
+		// so, it's match everything
+		return range.Length;
 	}
 
 	private readonly int TestSegment(int segment_index, string path, int index, int skip = 0)
@@ -145,30 +195,35 @@ internal struct Glob(string source)
 				return 1;
 			}
 
+			case SegmentType.AnyChar:
+			{
+				// matches n-many chars
+				//! NOTE: AnyChar groups all consecutive '?' to one segment
+				if (path.Length - index < segment.Length)
+					return 0;
+				return segment.Length;
+			}
+
 			// read until the next segment (if any) is satisfied
 			case SegmentType.AnyName:
+			case SegmentType.AnyPath:
 			{
+				GreedySegmentTester tester = segment.Type == SegmentType.AnyName ? TestSegmentAnyName : TestSegmentAnyPath;
+
 				if (segment_index == segments.Length - 1 || segments[segment_index].Length == 0)
 				{
-					return path.Length - index;
+					return tester(path, index..path.Length);
 				}
 
-				var (pos, result) = TestWalkSegment(segment_index + 1, path, index, skip);
+				var (pos, result) = TestWalkSegmentReversed(segment_index + 1, path, index, skip);
 
 				if (pos == -1 || result == 0)
 				{
 					// no need to return an error, next segment will fail
-					return path.Length - index;
+					return tester(path, index..path.Length);
 				}
 
-				return pos - index;
-			}
-
-			// read n path segment
-			case SegmentType.AnyPath:
-			{
-
-				return 0;
+				return tester(path, index..pos);
 			}
 
 			default:
@@ -203,8 +258,8 @@ internal struct Glob(string source)
 		{
 
 			if (index < source.Length - 1 && source[index + 1] == '*')
-				return new(SegmentType.AnyPath, new(index, index + 2));
-			return new(SegmentType.AnyName, new(index, index + 1));
+				return new(SegmentType.AnyPath, new IndexRange(index, index + 2));
+			return new(SegmentType.AnyName, new IndexRange(index, index + 1));
 		}
 
 		if (source[index] == '[')
@@ -214,16 +269,14 @@ internal struct Glob(string source)
 
 		if (source[index] == '\\' || source[index] == '/')
 		{
-			int count = 1;
-			// groups all consecutive directory separators
-			for (int i = index + 1; i < source.Length; i++)
-			{
-				if (!(source[i] == '/' || source[i] == '\\'))
-					break;
-				count++;
+			int count = source.AsSpan().CountContinues(c => c == '/' || c == '\\', index);
+			return new(SegmentType.DirectorySeparator, new IndexRange(index, index + count));
+		}
 
-			}
-			return new(SegmentType.DirectorySeparator, new(index, index + count));
+		if (source[index] == '?')
+		{
+			int count = source.AsSpan().CountContinues(c => c == '?', index);
+			return new(SegmentType.AnyChar, new IndexRange(index, index + count));
 		}
 
 		return ParseText(source, index);

@@ -1,5 +1,8 @@
 ﻿using Shipper.TUI;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Shipper;
 
@@ -32,6 +35,7 @@ internal static class Extensions
 		}
 	}
 
+
 	/// <summary>
 	/// evaluates all the elements using a transformer function
 	/// </summary>
@@ -62,8 +66,8 @@ internal static class Extensions
 	/// </summary>
 	/// <typeparam name="T">the array type</typeparam>
 	/// <param name="collection">the array</param>
-	/// <param name="start">the counting start position</param>
 	/// <param name="predicate">the counter predicate</param>
+	/// <param name="start">the counting start position</param>
 	/// <returns>how many elements where counted</returns>
 	public static int CountContinues<T>(this T[] collection, Predicate<T> predicate, int start = 0)
 	{
@@ -78,20 +82,21 @@ internal static class Extensions
 	/// <summary>
 	/// counts all contiguous elements satisfying the predicate, stops when the predicate fails
 	/// </summary>
-	/// <typeparam name="T">the collection type</typeparam>
-	/// <param name="collection">the collection</param>
-	/// <param name="start">the counting start position</param>
+	/// <typeparam name="T">the span's element type</typeparam>
+	/// <param name="span">the span</param>
 	/// <param name="predicate">the counter predicate</param>
+	/// <param name="start">the counting start position</param>
 	/// <returns>how many elements where counted</returns>
-	public static int CountContinues<T>(this T collection, Predicate<T> predicate, int start = 0) where T : ICollection<T>, IList<T>
+	public static int CountContinues<T>(this ReadOnlySpan<T> span, Predicate<T> predicate, int start = 0)
 	{
-		for (int i = start; i < collection.Count; i++)
+		for (int i = start; i < span.Length; i++)
 		{
-			if (!predicate(collection[i]))
+			if (!predicate(span[i]))
 				return i - start;
 		}
-		return collection.Count - start;
+		return span.Length - start;
 	}
+
 
 	public static T ToKilobyte<T>(this T value) where T : IShiftOperators<T, int, T>, INumber<T>
 	{
@@ -121,6 +126,11 @@ internal static class Extensions
 	public static int InterlaceHalfBits(this long value)
 	{
 		return (int)(value & 0xAAAA_AAAA) | (int)((value >> 32) & 0x5555_5555);
+	}
+
+	public static bool IsDirectorySeparator(this char value)
+	{
+		return value == '/' || value == '\\';
 	}
 
 }

@@ -81,30 +81,28 @@ internal readonly struct FilePath
 		return builder.ToString().TrimEnd(Path.DirectorySeparatorChar);
 	}
 
-	public static IndexRange[] GetSegments(string path)
+	public static IEnumerable<IndexRange> GetSegments(string path)
 	{
-		List<IndexRange> segments = new();
-
 		int seg_start = 0;
 		for (int i = 0; i < path.Length; i++)
 		{
 			if (seg_start < 0)
 			{
-				if (!(path[i] == '\\' || path[i] == '/'))
+				if (!path[i].IsDirectorySeparator())
 					seg_start = i;
 
 				continue;
 			}
 
-			if (path[i] == '\\' || path[i] == '/')
+			if (path[i].IsDirectorySeparator())
 			{
-				segments.Add(new(seg_start, i));
+				yield return seg_start..i;
 				seg_start = -1;
 			}
 
 			if (Path.GetInvalidPathChars().Contains(path[i]))
 			{
-				segments.Add(new(seg_start, i));
+				yield return seg_start..i;
 				seg_start = -1;
 
 				// invalid char, no reason to continue
@@ -114,10 +112,8 @@ internal readonly struct FilePath
 
 		if (seg_start >= 0)
 		{
-			segments.Add(new(seg_start, path.Length));
+			yield return seg_start..path.Length;
 		}
-
-		return segments.ToArray();
 	}
 
 	public static string GetParent(string path)
@@ -211,7 +207,7 @@ internal readonly struct FilePath
 	public readonly string Content;
 
 
-	public static readonly FilePath Executable = new(Assembly.GetExecutingAssembly().Location);
+	public static readonly FilePath Executable = new(AppContext.BaseDirectory); // TODO: fix for single-file apps
 	public static readonly FilePath ParentDir = Executable.Parent;
 	public static readonly FilePath WorkingDir = new(System.Environment.CurrentDirectory);
 }

@@ -140,7 +140,7 @@ internal class Project
 				continue;
 			}
 
-			results[counter++] = command.Execute(macro.Input.Arguments);
+			results[counter++] = command.Execute(macro.Input.Arguments, CommandCallContext.ProjectCommand);
 		}
 		return results;
 	}
