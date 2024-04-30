@@ -9,7 +9,7 @@ internal class StatsCommand : ICommand
 
 	public string Help => "TODO";
 
-	public Error Execute(Argument[] arguments)
+	public Error Execute(Argument[] arguments, CommandCallContext context = CommandCallContext.InteractiveTerminal)
 	{
 		Process process = Process.GetCurrentProcess();
 		PrintMemoryStats(process);

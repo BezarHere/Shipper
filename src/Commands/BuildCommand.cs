@@ -10,7 +10,7 @@ class BuildCommand : ICommand
 
 	public string Help => "stuff";
 
-	public Error Execute(Argument[] arguments)
+	public Error Execute(Argument[] arguments, CommandCallContext context = CommandCallContext.InteractiveTerminal)
 	{
 		if (arguments.Length == 0)
 			return Error.ExpectedArgument;

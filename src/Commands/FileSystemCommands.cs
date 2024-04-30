@@ -12,7 +12,7 @@ internal class CopyCommand : ICommand
 
 	public string Help => "copy <source> <destination> ['-O' or '-overwrite' to force overwrite]";
 
-	public Error Execute(Argument[] arguments)
+	public Error Execute(Argument[] arguments, CommandCallContext context = CommandCallContext.InteractiveTerminal)
 	{
 		if (arguments.Length < 2)
 		{
@@ -66,7 +66,7 @@ internal class MoveCommand : ICommand
 
 	public string Help => "move <source> <destination> ['-O' or '-overwrite' to force overwrite]";
 
-	public Error Execute(Argument[] arguments)
+	public Error Execute(Argument[] arguments, CommandCallContext context = CommandCallContext.InteractiveTerminal)
 	{
 		if (arguments.Length < 2)
 		{
@@ -121,7 +121,7 @@ internal class DeleteCommand : ICommand
 
 	public string Help => "delete <target>";
 
-	public Error Execute(Argument[] arguments)
+	public Error Execute(Argument[] arguments, CommandCallContext context = CommandCallContext.InteractiveTerminal)
 	{
 		if (arguments.Length < 1)
 		{
