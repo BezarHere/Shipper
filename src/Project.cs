@@ -1,77 +1,72 @@
 ﻿using Shipper.Commands;
 using Shipper.Script;
-using System.IO;
 
 namespace Shipper;
 
 internal class Project
 {
 
-	public Project(Dictionary<string, Entry[]> data, FilePath? location)
+	public Project(Dictionary<string, Value> data, FilePath? location)
 	{
 		Location = location?.Parent ?? FilePath.WorkingDir;
-		if (data.TryGetValue("base", out Entry[]? base_value) && base_value[0].Values.Length > 0)
+		if (data.TryGetValue("base", out Value base_value))
 		{
-			Base = new(base_value[0].Values[0], Location);
+			Base = new(base_value.String, Location);
 		}
 
-		if (data.TryGetValue("header_match", out Entry[]? header_match))
+		if (data.TryGetValue("header_match", out Value header_match))
 		{
 			List<Glob> header_match_globs = new();
-			foreach (Entry entry in header_match)
+			foreach (Value entry in header_match.Array)
 			{
-				foreach (string value in entry.Values)
-				{
-					header_match_globs.Add(new(value));
-				}
+				header_match_globs.Add(new(entry.String));
 			}
 
 			HeaderMatch = header_match_globs.ToArray();
 		}
 
 
-		if (data.TryGetValue("header_unmatch", out Entry[]? header_unmatch))
+		if (data.TryGetValue("header_unmatch", out Value header_unmatch))
 		{
 			List<Glob> header_unmatch_globs = new();
-			foreach (Entry entry in header_unmatch)
+			foreach (Value entry in header_unmatch.Array)
 			{
-				foreach (string value in entry.Values)
-				{
-					header_unmatch_globs.Add(new(value));
-				}
+				header_unmatch_globs.Add(new(entry.String));
+
 			}
 
 			HeaderUnMatch = header_unmatch_globs.ToArray();
 		}
 
-		if (data.TryGetValue("source", out Entry[]? source))
+		if (data.TryGetValue("source", out Value source))
 		{
-			if (source[0].Values.Length > 0)
+			if (source.Type == Script.ValueType.String)
 			{
-				Source = new(source[0].Values[0], Location);
+				Source = new(source.String, Location);
 			}
 		}
 
-		if (data.TryGetValue("target", out Entry[]? target))
+		if (data.TryGetValue("target", out Value target))
 		{
-			if (target[0].Values.Length > 0)
+			if (target.Type == Script.ValueType.String)
 			{
-				Target = new(target[0].Values[0], Location);
+				Target = new(target.String, Location);
 			}
 		}
 
-		if (data.TryGetValue("command", out Entry[]? commands_entries))
+		if (data.TryGetValue("command", out Value commands_entries))
 		{
 			List<CommandMacro> commands = new();
 
-			foreach (Entry command_entry in commands_entries)
+			foreach (Value command_entry in commands_entries.Array)
 			{
-				if (command_entry.Values.Length < 1)
+				if (command_entry.Type != Script.ValueType.Array)
 				{
 					// error?
 					continue;
 				}
-				commands.Add(new(command_entry.Values[0], LineInput.FromArgs(command_entry.Values[1..])));
+				var args = from v in command_entry.Array[1..] select v.String;
+				commands.Add(new(command_entry.Array[0].String, LineInput.FromArgs(args.ToArray())));
 			}
 
 			Commands = commands.ToArray();
@@ -81,18 +76,8 @@ internal class Project
 
 	public static Project FromFile(FilePath filePath)
 	{
-		Entry[] entries = ShipScript.Load(File.OpenText(filePath)).ToArray();
-
-		Dictionary<string, Entry[]> entry_map = new();
-
-		foreach (Entry entry in entries)
-		{
-			if (entry_map.ContainsKey(entry.Name))
-				continue;
-			entry_map[entry.Name] = (from e in entries where e.Name == entry.Name select e).ToArray();
-		}
-
-		return new(entry_map, filePath);
+		var entries = ShipScript.Load(File.ReadAllText(filePath)).ToArray();
+		return new(new Dictionary<string, Value>(entries), filePath);
 	}
 
 	public Error Start()
