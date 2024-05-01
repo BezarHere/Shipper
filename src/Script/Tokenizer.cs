@@ -17,7 +17,7 @@ enum TokenType
 	String,
 	LiteralString,
 
-	EqualSign,
+	Assignment,
 	Comma,
 }
 
@@ -27,6 +27,9 @@ record struct Token(TokenType Type, IndexRange Range, int Index = -1)
 
 internal static class Tokenizer
 {
+	public const char CommentPrefix = '#';
+	public const char AssignmentChar = '=';
+	public static readonly char[] Newline = ['\r', '\n'];
 
 	public static IEnumerable<Token> Run(string source)
 	{
@@ -35,9 +38,9 @@ internal static class Tokenizer
 
 		for (int i = 0; i < source.Length; i++)
 		{
-			if (source[i] == '\n')
+			if (Newline.Contains(source[i]))
 			{
-				int count = source.AsSpan(i).CountContinues(c => c == '\n');
+				int count = source.AsSpan(i).CountContinues(c => Newline.Contains(c));
 				yield return new Token(TokenType.NewLine, i..(i + count));
 				i += count - 1;
 				continue;
@@ -51,9 +54,9 @@ internal static class Tokenizer
 				continue;
 			}
 
-			if (source[i] == '=')
+			if (source[i] == AssignmentChar)
 			{
-				yield return new Token(TokenType.EqualSign, i..(i + 1));
+				yield return new Token(TokenType.Assignment, i..(i + 1));
 				continue;
 			}
 
@@ -83,17 +86,24 @@ internal static class Tokenizer
 				continue;
 			}
 
-			static bool func(char c)
+			if (source[i] == CommentPrefix)
 			{
-				if (char.IsWhiteSpace(c))
-					return false;
-				if (c == '=' || c == ',' || c == '\'' || c == '"')
-					return false;
-				return true;
+				int newline = source.IndexOf(Newline, i);
+
+				// comment reaches the end of the source
+				if (newline == -1)
+				{
+					break;
+				}
+
+				// skip to the new line
+				i = newline - 1;
+				continue;
 			}
 
 			// if non of the above condition is met, then this must be a regular name (string)
-			int char_count = source.AsSpan().CountContinues(func, i);
+			int char_count = source.AsSpan()
+				.CountContinues(c => IsIdentifierChar(c, 1), i);
 
 			if (char_count == 0)
 			{
@@ -107,6 +117,14 @@ internal static class Tokenizer
 		yield break;
 	}
 
+	private static bool IsIdentifierChar(char c, int offset)
+	{
+		_ = offset;
+
+		if (char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '_')
+			return true;
+		return false;
+	}
 
 	private enum StringType
 	{
