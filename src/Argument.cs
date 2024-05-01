@@ -30,16 +30,21 @@ struct Argument
 
 	public readonly bool HasBeenUsed { get => Uses.Count > 0; }
 
-	
+
 
 	private static IndexRange ReadCommandlet(string source, int index)
 	{
-		return Parser.ReadIdentifier(source, index);
+		foreach (Token tk in Tokenizer.Run(source[index..]))
+		{
+			if (tk.Type == TokenType.String || tk.Type == TokenType.LiteralString)
+				return new IndexRange(tk.Range.Start + index, tk.Range.End + index);
+		}
+		return IndexRange.Invalid;
 	}
 
 	private static IndexRange[] SplitCommandlets(string source)
 	{
-		List<IndexRange> ranges = new();
+		List<IndexRange> ranges = [];
 		int index = 0;
 		while (index < source.Length)
 		{
