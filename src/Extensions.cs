@@ -34,6 +34,23 @@ internal static class Extensions
 			counter++;
 		}
 	}
+	public static int IndexOf(this string String, IEnumerable<char> chars, int start = 0)
+	{
+		int min = -1;
+
+		foreach (char c in chars)
+		{
+			int cindex = String.IndexOf(c, start);
+			
+			if (cindex == -1)
+				continue;
+
+			if (cindex < min || min == -1)
+				min = cindex;
+		}
+
+		return min;
+	}
 
 
 	/// <summary>
