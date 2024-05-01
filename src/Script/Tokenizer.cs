@@ -108,6 +108,7 @@ internal static class Tokenizer
 			if (char_count == 0)
 			{
 				yield return new(TokenType.Unknown, i..(i + 1));
+				continue;
 			}
 
 			yield return new(TokenType.String, i..(i + char_count));
@@ -117,7 +118,7 @@ internal static class Tokenizer
 		yield break;
 	}
 
-	private static bool IsIdentifierChar(char c, int offset)
+	public static bool IsIdentifierChar(char c, int offset)
 	{
 		_ = offset;
 
@@ -126,7 +127,7 @@ internal static class Tokenizer
 		return false;
 	}
 
-	private enum StringType
+	public enum StringType
 	{
 		Normal,
 		Literal,
@@ -134,7 +135,7 @@ internal static class Tokenizer
 		LiteralMultiline,
 	}
 
-	private static StringType GetStringType(string source, int start)
+	public static StringType GetStringType(string source, int start)
 	{
 		int len = source.Length - start;
 
@@ -151,7 +152,7 @@ internal static class Tokenizer
 		return type;
 	}
 
-	private static Token ReadString(string source, int start)
+	public static Token ReadString(string source, int start)
 	{
 		StringType type = GetStringType(source, start);
 		int type_len = type == StringType.Normal || type == StringType.Literal ? 1 : 3;
