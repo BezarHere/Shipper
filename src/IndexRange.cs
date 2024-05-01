@@ -24,6 +24,11 @@ readonly struct IndexRange(int start, int end) : IEnumerable<int>
 		return new(Start - offset, End + offset);
 	}
 
+	public readonly override string ToString()
+	{
+		return $"{Start}..{End}";
+	}
+
 	public IEnumerator<int> GetEnumerator()
 	{
 		for (int i = Start; i < End; i++) yield return i;
@@ -49,4 +54,6 @@ readonly struct IndexRange(int start, int end) : IEnumerable<int>
 		return range.Length;
 	}
 
+
+	public static readonly IndexRange Invalid = new(-1, -1);
 }
