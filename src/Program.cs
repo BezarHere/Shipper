@@ -1,5 +1,6 @@
 ﻿
 using Shipper.Commands;
+using Shipper.Script;
 using Shipper.TUI;
 
 namespace Shipper;
@@ -16,7 +17,9 @@ internal class Program
 
 		while (RunningInteractive)
 		{
+			Console.ForegroundColor = ConsoleColor.DarkGray;
 			Console.Write(">> ");
+			Console.ForegroundColor = ConsoleColor.Gray;
 			string line = (Console.ReadLine() ?? "quit").Trim();
 			if (line == "quit" || line == "exit" || line == "q")
 			{
@@ -39,9 +42,25 @@ internal class Program
 		return result;
 	}
 
+	private static Error RunStartup(string[] args)
+	{
+		foreach (string[] sub_args in SeparateMainArgs(args))
+		{
+			Error err = Run(LineInput.FromArgs(sub_args));
+			if (err != Error.Ok)
+				return err;
+		}
+		return Error.Ok;
+	}
+
 	private static Error Run(LineInput input)
 	{
 		var arguments = input.Arguments;
+		if (arguments.Length == 0)
+		{
+			return Error.Ok;
+		}
+
 		ICommand? command = ShipperCore.GetCommand(arguments[0].Content);
 
 		if (command is null)
@@ -62,8 +81,9 @@ internal class Program
 
 		if (result != Error.Ok)
 		{
+			Console.ForegroundColor = ConsoleColor.DarkMagenta;
 			Console.WriteLine($"Command '{command.Name}' has returned an error: {ErrorUtility.GetName(result)}");
-			return result;
+			Console.ForegroundColor = ConsoleColor.Gray;
 		}
 
 		for (int i = 0; i < arguments.Length; i++)
@@ -80,21 +100,20 @@ internal class Program
 			}
 		}
 
-		return Error.Ok;
+		return result;
 	}
 
 	private static int Main(string[] args)
 	{
-		ShipperCore.Init();
+		ShipperCore.Init(ref args);
 
 		Glob glob = new("**/*.cs");
-		string test = "F:\\Assets\\visual studio\\Shipper\\project_demo.cs";
-		Console.WriteLine($"test = {glob.Test(test)}, {glob.Test(test, true)}");
+		string test = "F:\\Assets\\visual studio\\Shipper\\project_demo.ship";
 
 		if (args.Length == 0)
 			return (int)RunInteractive();
 
-		return (int)Run(LineInput.FromArgs(args));
+		return (int)RunStartup(args);
 	}
 
 	private static void SetupInteractive()
@@ -104,6 +123,26 @@ internal class Program
 		Console.Title = "Shipper";
 		if (DateTime.Now.Day == 1 && DateTime.Now.Month == 4)
 			Console.Title = "Shipper: [INSERT APRIL JOKE]";
+	}
+
+	private static IEnumerable<string[]> SeparateMainArgs(string[] args)
+	{
+		int start = 0;
+		for (int i = 0; i < args.Length; i++)
+		{
+			if (args[i] == "+")
+			{
+				yield return args[start..i];
+				start = i + 1;
+			}
+			else if (args[i].Length > 0 && args[i][0] == '+')
+			{
+				yield return args[start..i];
+				args[i] = args[i][1..];
+				start = i;
+			}
+		}
+		yield return args[start..];
 	}
 
 	public static bool RunningInteractive { get; private set; } = false;
