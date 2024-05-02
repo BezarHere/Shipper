@@ -23,6 +23,10 @@ enum TokenType
 
 record struct Token(TokenType Type, IndexRange Range, int Index = -1)
 {
+	/// <summary>
+	/// is this token a type of a string (quoted, literal, name)
+	/// </summary>
+	public readonly bool IsString { get => Type == TokenType.String || Type == TokenType.LiteralString; }
 }
 
 internal static class Tokenizer
@@ -68,21 +72,23 @@ internal static class Tokenizer
 
 			if (source[i] == '\'' || source[i] == '"')
 			{
-				Token tk = ReadString(source, i);
+				Token tk = ReadString(source, i, out int edges_len);
 				// something fucked, the string might be unclosed
 				if (tk.Range.End > source.Length)
 				{
 					Highlight highlight = new()
 					{
 						Message = "Unclosed string",
-						Span = i..(i + 1),
+						Span = i..(i + edges_len),
 						Text = source
 					};
 					highlight.Draw();
 				}
 
 				i = tk.Range.End - 1;
-				yield return tk;
+
+				// removing edges
+				yield return new Token(tk.Type, tk.Range.Expanded(-edges_len), tk.Index);
 				continue;
 			}
 
@@ -152,16 +158,17 @@ internal static class Tokenizer
 		return type;
 	}
 
-	public static Token ReadString(string source, int start)
+	public static Token ReadString(string source, int start, out int edges_len)
 	{
 		StringType type = GetStringType(source, start);
-		int type_len = type == StringType.Normal || type == StringType.Literal ? 1 : 3;
 		char type_char = source[start];
 		int original_start = start;
 
-		start += type_len;
+		edges_len = type == StringType.Normal || type == StringType.Literal ? 1 : 3;
 
-		int end = source.Length - type_len + 1;
+		start += edges_len;
+
+		int end = source.Length - edges_len + 1;
 		for (int i = start; i < end; i++)
 		{
 			// escape (in a non-literal string)
@@ -174,10 +181,10 @@ internal static class Tokenizer
 			if (source[i] == type_char)
 			{
 				// found all the closing quotes
-				if (source.AsSpan().CountContinues(c => c == type_char, i) >= type_len)
+				if (source.AsSpan().CountContinues(c => c == type_char, i) >= edges_len)
 				{
 					// range includes the quotes
-					return new(type_char == '"' ? TokenType.String : TokenType.LiteralString, original_start..(i + type_len));
+					return new(type_char == '"' ? TokenType.String : TokenType.LiteralString, original_start..(i + edges_len));
 				}
 			}
 
