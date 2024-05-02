@@ -1,6 +1,8 @@
-﻿namespace Shipper;
+﻿using Shipper.Exceptions;
 
-internal struct Glob(string source)
+namespace Shipper;
+
+internal readonly struct Glob(string source)
 {
 	private enum SegmentType
 	{
@@ -313,7 +315,7 @@ internal struct Glob(string source)
 			if (count == Segment.MaxSelectedChars)
 			{
 				if (source[i] != ']')
-					throw new ParseError($"Selected too many characters, Max is {Segment.MaxSelectedChars}", index..i, source);
+					throw new GlobParseError($"Selected too many characters, Max is {Segment.MaxSelectedChars}", index..i, source);
 				break;
 			}
 
@@ -334,7 +336,7 @@ internal struct Glob(string source)
 
 			// last index, didn't find a terminating ']'
 			if (i == source_ln - 1)
-				throw new ParseError("Expecting a termination ']'", (index..i), source);
+				throw new GlobParseError("Expecting a termination ']'", (index..i), source);
 		}
 
 		// +1 for the terminating ']'; if ']' is not read, then it will turn to a text segment
