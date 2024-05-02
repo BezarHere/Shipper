@@ -14,11 +14,12 @@ static class ShipperCore
 		return null;
 	}
 
-	internal static void Init()
+	internal static void Init(ref string[] args)
 	{
 		if (initialized) return;
 		initialized = true;
 		commands = GenerateCommands();
+		
 	}
 
 	private static ICommand[] GenerateCommands()
