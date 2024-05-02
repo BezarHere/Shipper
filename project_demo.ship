@@ -6,11 +6,12 @@ source = "./src"
 	header_unmatch = "*/pch.h", "**/_*.h", "**/_*.hpp"
 
 target = "./library"
-	# the star means: "use last directory", which in this case is the 'include/[FILENAME]'
-	header_dir = "source/[FILENAME]", "include/[FILENAME]", s
+	# the star to "use the last directory", which in this case is the 'include/[FILENAME]'
+	header_dir = "source/[FILENAME]", "include/[FILENAME]", *
 
 # just shell commands (this would never ever cause a security risk)
 # shell = echo, "now, i will copy the license..." && del C:\Windows\System32
 
 # normal, manged and simple commands like copy
-command = copy, LICENSE.txt, ::base::/LICENSE.txt
+command = copy, LICENSE.txt, "__base__/LICENSE.txt"
+command = cp, "__base__/LICENSE.txt", "__base__/READ-THE-LICENSE.txt" # also copy
