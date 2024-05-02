@@ -1,9 +1,9 @@
 ﻿namespace Shipper.Commands;
 
-readonly struct ProjectNewParameters
+readonly struct ProjectNewParameters(in FilePath path, in LineInput input)
 {
-	public readonly FilePath Path;
-	public readonly LineInput Input;
+	public readonly FilePath Path = path;
+	public readonly LineInput Input = input;
 }
 
 interface IProjectNewTemplate
