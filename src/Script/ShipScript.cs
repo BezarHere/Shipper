@@ -175,9 +175,9 @@ static class ShipScript
 				parent.List.Add(new_value);
 				return false;
 			}
-			case ValueType.ArrayList:
+			case ValueType.DeepList:
 			{
-				parent.ArrayList[^1].Add(new_value);
+				parent.DeepList[^1].Add(new_value);
 				return false;
 			}
 			case ValueType.Table:

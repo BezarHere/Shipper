@@ -5,6 +5,9 @@ namespace Shipper;
 
 internal class Project
 {
+	private record struct HeaderTransformer(in Glob Matcher, string Target)
+	{
+	}
 
 	public Project(Dictionary<string, Value> data, FilePath? location)
 	{
@@ -18,7 +21,7 @@ internal class Project
 		{
 			List<Glob> header_match_globs = new();
 			
-			if (header_match.Type == Script.ValueType.ArrayList)
+			if (header_match.Type == Script.ValueType.DeepList)
 			{
 				header_match = Value.ToListValue(header_match);
 			}
@@ -35,7 +38,7 @@ internal class Project
 		if (data.TryGetValue("header_unmatch", out Value header_unmatch))
 		{
 			List<Glob> header_unmatch_globs = new();
-			if (header_unmatch.Type == Script.ValueType.ArrayList)
+			if (header_unmatch.Type == Script.ValueType.DeepList)
 			{
 				header_unmatch = Value.ToListValue(header_unmatch);
 			}
@@ -46,7 +49,7 @@ internal class Project
 
 			}
 
-			HeaderUnMatch = header_unmatch_globs.ToArray();
+			HeaderBlacklist = header_unmatch_globs.ToArray();
 		}
 
 		if (data.TryGetValue("source", out Value source))
@@ -69,7 +72,7 @@ internal class Project
 		{
 			List<CommandMacro> commands = [];
 
-			foreach (List<string> command_entry in commands_entries.ArrayList)
+			foreach (List<string> command_entry in commands_entries.DeepList)
 			{
 				commands.Add(new(command_entry[0], LineInput.FromArgs(command_entry.ToArray()[1..])));
 			}
@@ -180,10 +183,10 @@ internal class Project
 			if (HeaderMatch[i].Test(path, true))
 			{
 				bool excluded = false;
-				for (int j = 0; j < HeaderUnMatch.Length; j++)
+				for (int j = 0; j < HeaderBlacklist.Length; j++)
 				{
 					// the path is unmatched, break
-					if (HeaderUnMatch[j].Test(path, true))
+					if (HeaderBlacklist[j].Test(path, true))
 					{
 						excluded = true;
 						break;
@@ -207,7 +210,9 @@ internal class Project
 	public FilePath Target { get; private set; }
 
 	public Glob[] HeaderMatch { get; private set; } = [];
-	public Glob[] HeaderUnMatch { get; private set; } = [];
+
+
+	public Glob[] HeaderBlacklist { get; private set; } = [];
 
 	public CommandMacro[] Commands { get; private set; } = [];
 

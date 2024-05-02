@@ -7,7 +7,7 @@ enum ValueType
 	None,
 	String,
 	List,
-	ArrayList,
+	DeepList,
 	Table,
 }
 
@@ -41,7 +41,7 @@ internal struct Value : IEquatable<Value>
 				_data = new List<string>();
 				break;
 			}
-			case ValueType.ArrayList:
+			case ValueType.DeepList:
 			{
 				_data = new List<List<string>>();
 				break;
@@ -67,10 +67,10 @@ internal struct Value : IEquatable<Value>
 		_data = list;
 	}
 
-	public Value(List<List<string>> array_list)
+	public Value(List<List<string>> deep_list)
 	{
-		Type = ValueType.ArrayList;
-		_data = array_list;
+		Type = ValueType.DeepList;
+		_data = deep_list;
 	}
 
 	public Value(Dictionary<string, Value> table)
@@ -80,20 +80,32 @@ internal struct Value : IEquatable<Value>
 	}
 
 	/// <summary>
-	/// converts an array list (list of lists of strings) to a list (list of strings), flattening all the nested lists.
+	/// converts a deep list (list of lists of strings) to a list (list of strings), flattening all the nested lists.
 	/// </summary>
-	/// <returns>a list value if the value is an array list, otherwise returns an empty value</returns>
+	/// <returns>a list value if the value is a deep list, otherwise returns an empty value</returns>
 	public static Value ToListValue(in Value value)
 	{
-		if (value.Type != ValueType.ArrayList)
+		if (value.Type != ValueType.DeepList)
 			return default;
 
 		List<string> list = [];
-		foreach (List<string> ls in value.ArrayList)
+		foreach (List<string> ls in value.DeepList)
 		{
 			list.AddRange(ls);
 		}
 		return new Value(list);
+	}
+
+	/// <summary>
+	/// converts a list (list of strings) to a deep list (list of lists of strings).
+	/// moves the original list to the first element of the deep list.
+	/// </summary>
+	/// <returns>a list value if the value is a deep list, otherwise returns an empty value</returns>
+	public static Value ToDeepListValue(in Value value)
+	{
+		if (value.Type != ValueType.List)
+			return default;
+		return new Value([value.List]);
 	}
 
 	public string String
@@ -128,17 +140,17 @@ internal struct Value : IEquatable<Value>
 		}
 	}
 
-	public List<List<string>> ArrayList
+	public List<List<string>> DeepList
 	{
 		readonly get
 		{
-			if (Type != ValueType.ArrayList)
+			if (Type != ValueType.DeepList)
 				throw new InvalidOperationException("Value isn't a list array type");
 			return (List<List<string>>)_data;
 		}
 		set
 		{
-			if (Type != ValueType.ArrayList)
+			if (Type != ValueType.DeepList)
 				throw new InvalidOperationException("Value isn't a list array type");
 			_data = value;
 		}
@@ -174,5 +186,18 @@ internal struct Value : IEquatable<Value>
 	public override readonly int GetHashCode()
 	{
 		return _data.GetHashCode();
+	}
+
+	private static object GetDefault(ValueType type)
+	{
+		return type switch
+		{
+			ValueType.None => 0,
+			ValueType.String => string.Empty,
+			ValueType.List => new List<string>(),
+			ValueType.DeepList => new List<List<string>>(),
+			ValueType.Table => new Dictionary<string, Value>(),
+			_ => 0,
+		};
 	}
 }
