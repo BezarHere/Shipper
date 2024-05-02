@@ -17,9 +17,15 @@ internal class Project
 		if (data.TryGetValue("header_match", out Value header_match))
 		{
 			List<Glob> header_match_globs = new();
-			foreach (Value entry in header_match.Array)
+			
+			if (header_match.Type == Script.ValueType.ArrayList)
 			{
-				header_match_globs.Add(new(entry.String));
+				header_match = Value.ToListValue(header_match);
+			}
+
+			foreach (string entry in header_match.List)
+			{
+				header_match_globs.Add(new(entry));
 			}
 
 			HeaderMatch = header_match_globs.ToArray();
@@ -29,9 +35,14 @@ internal class Project
 		if (data.TryGetValue("header_unmatch", out Value header_unmatch))
 		{
 			List<Glob> header_unmatch_globs = new();
-			foreach (Value entry in header_unmatch.Array)
+			if (header_unmatch.Type == Script.ValueType.ArrayList)
 			{
-				header_unmatch_globs.Add(new(entry.String));
+				header_unmatch = Value.ToListValue(header_unmatch);
+			}
+
+			foreach (string entry in header_unmatch.List)
+			{
+				header_unmatch_globs.Add(new(entry));
 
 			}
 
@@ -56,22 +67,17 @@ internal class Project
 
 		if (data.TryGetValue("command", out Value commands_entries))
 		{
-			List<CommandMacro> commands = new();
+			List<CommandMacro> commands = [];
 
-			foreach (Value command_entry in commands_entries.Array)
+			foreach (List<string> command_entry in commands_entries.ArrayList)
 			{
-				if (command_entry.Type != Script.ValueType.Array)
-				{
-					// error?
-					continue;
-				}
-				var args = from v in command_entry.Array[1..] select v.String;
-				commands.Add(new(command_entry.Array[0].String, LineInput.FromArgs(args.ToArray())));
+				commands.Add(new(command_entry[0], LineInput.FromArgs(command_entry.ToArray()[1..])));
 			}
 
 			Commands = commands.ToArray();
 		}
 
+		PostProcessPaths();
 	}
 
 	public static Project FromFile(FilePath filePath)
@@ -90,10 +96,9 @@ internal class Project
 		return from fp in GetAvailableFiles() where IsHeaderPathIncluded(fp) select fp;
 	}
 
-	public FilePath[] GetAvailableFiles()
+	public IEnumerable<FilePath> GetAvailableFiles()
 	{
-		List<FilePath> results = new();
-		Stack<FilePath> directories = new();
+		Stack<FilePath> directories = new(1024);
 		directories.Push(Base);
 
 		while (directories.Count > 0)
@@ -106,9 +111,8 @@ internal class Project
 				directories.Push(fp);
 
 			foreach (FilePath fp in current.GetFiles())
-				results.Add(fp);
+				yield return fp;
 		}
-		return results.ToArray();
 	}
 
 	private Error[] RunCommands()
@@ -128,6 +132,44 @@ internal class Project
 			results[counter++] = command.Execute(macro.Input.Arguments, CommandCallContext.ProjectCommand);
 		}
 		return results;
+	}
+
+	private void PostProcessPaths()
+	{
+		Dictionary<string, string> macros = new()
+		{
+			["__base__"] = Base,
+			["__location__"] = Location,
+			["__source__"] = Source,
+			["__target__"] = Target,
+		};
+
+		string Subtitute(string original)
+		{
+			foreach (var (k, v) in macros)
+			{
+				original = original.Replace(k, v);
+			}
+			return original;
+		}
+
+		Base = new FilePath(Subtitute(Base));
+		Location = new FilePath(Subtitute(Location));
+		Source = new FilePath(Subtitute(Source));
+		Target = new FilePath(Subtitute(Target));
+
+		for (int i = 0; i < Commands.Length; i++)
+		{
+			var original_args = Commands[i].Input.Arguments;
+			var args_count = original_args.Length;
+			string[] arguments = new string[args_count];
+			for (int j = 0; j < args_count; j++)
+			{
+				arguments[j] = Subtitute(original_args[j].Content);
+			}
+			Commands[i] = new(Commands[i].Name, LineInput.FromArgs(arguments));
+		}
+
 	}
 
 	private bool IsHeaderPathIncluded(in FilePath path)
@@ -158,14 +200,14 @@ internal class Project
 		return false;
 	}
 
-	public readonly FilePath Base;
-	public readonly FilePath Location;
+	public FilePath Base { get; private set; }
+	public FilePath Location { get; private set; }
 
-	public readonly FilePath Source;
-	public readonly FilePath Target;
+	public FilePath Source { get; private set; }
+	public FilePath Target { get; private set; }
 
-	public readonly Glob[] HeaderMatch = [];
-	public readonly Glob[] HeaderUnMatch = [];
+	public Glob[] HeaderMatch { get; private set; } = [];
+	public Glob[] HeaderUnMatch { get; private set; } = [];
 
 	public CommandMacro[] Commands { get; private set; } = [];
 
